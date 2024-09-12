@@ -8,6 +8,7 @@ use std::ops::Index;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
 use std::rc::Rc;
+use bindgen::Formatter;
 
 // We need the interior mutability of `RefCell` to work around the fact that the
 // `func_macro` callback is not called with a `mut` reference. We need
@@ -35,7 +36,7 @@ impl std::fmt::Debug for Callbacks {
 
 impl Callbacks {
     fn new(bt: HideUnwinding<BTreeMap<String, Vec<u8>>>) -> Self {
-        let wrapped = bindgen::CargoCallbacks;
+        let wrapped = bindgen::CargoCallbacks::new();
         let state = Rc::clone(&bt);
         Self { wrapped, state }
     }
@@ -318,15 +319,16 @@ fn main() -> std::io::Result<()> {
         .header(out_path.join("lightning.h").to_str().unwrap())
         .header("C/lightning-sys.h")
         .parse_callbacks(Box::new(cb))
-        .whitelist_function(".+_jit")
-        .whitelist_function("_?jit_.*")
-        .whitelist_type("_?jit_.*")
-        .whitelist_var("_?jit_.*")
-        .whitelist_function("lgsys_.*")
-        .whitelist_var("lgsys_.*")
+        .allowlist_function(".+_jit")
+        .allowlist_function("_?jit_.*")
+        .allowlist_type("_?jit_.*")
+        .allowlist_var("_?jit_.*")
+        .allowlist_function("lgsys_.*")
+        .allowlist_var("lgsys_.*")
         .rust_target(bindgen::RustTarget::Stable_1_36)
         .rustified_enum("jit_code_t")
-        .rustfmt_bindings(true)
+        .formatter(Formatter::Rustfmt)
+        // .rustfmt_bindings(true)
         .clang_arg(format!("-I{}", incdir.to_str().unwrap()))
         .generate()
         .expect("Unable to generate bindings");
